@@ -1,7 +1,6 @@
-#include "TinkerKit.h"
-
 #include <iostream>
 #include <Math.h>      // PI
+#include <TinkerKit.hpp>
 #include <unistd.h>    // usleep()
 
 TKInputDigital::TKInputDigital(uint8_t _pin) {

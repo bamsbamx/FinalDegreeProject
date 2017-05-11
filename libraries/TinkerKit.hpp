@@ -1,5 +1,5 @@
-#ifndef TinkerKit2_h
-#define TinkerKit2_h
+#ifndef TinkerKit_hpp
+#define TinkerKit_hpp
 
 #include <stdint.h>
 #include "mraa.hpp"
@@ -166,11 +166,11 @@ class TKThermistor : public TKInputAnalog {
 		float readFahrenheit();
 
 	protected:
-		constexpr static float ADCres = 1023.0;
+		const static float ADCres = 1023.0;
 		const static int Beta = 3950;			// Beta parameter
-		constexpr static float Kelvin = 273.15;	// 0°C = 273.15 K
+		const static float Kelvin = 273.15;	// 0°C = 273.15 K
 		const static int Rb = 10000;			// 10 kOhm
-		constexpr static float Ginf = 120.6685;	// Ginf = 1/Rinf
+		const static float Ginf = 120.6685;	// Ginf = 1/Rinf
 		// Rinf = R0*e^(-Beta/T0) = 4700*e^(-3950/298.15)
 
 };
@@ -233,7 +233,7 @@ class TKAccelerometer : public TKInputAnalog2 {
 		int inclination();
 
 	protected:
-		constexpr static float _gain = 1.414;
+		const static float _gain = 1.414;
 		const static int _zeroOffset = 478;
 
 };
