@@ -7,6 +7,8 @@ Since the IOT2040 is based on the Intel Galileo GEN2, its SoC contains an Arduin
 
 ## Milestones
 
+NOTE: Each milestone will have its own branch on this proyect repository
+
 ### 1.Create mraa compatible TinkerKit! library
 The existing [official TinkerKit! library](https://github.com/TinkerKit/TinkerKit) is based on the Arduino core libs with the idea to be working just for Arduino. However, the IOT2040 works with [Intel´s C/C++ mraa library](https://iotdk.intel.com/docs/master/mraa/) so, to be able to get access to the TinkerKit! shield I/O pins, it is a must to make an adaptation of the [TinkerKit! code for Arduino](https://github.com/TinkerKit/TinkerKit) to make it work with Intel's [mraa](https://iotdk.intel.com/docs/master/mraa/) core libraries. That said, such adaptation can be found in the [/libraries](https://github.com/bamsbamx/FinalDegreeProject/tree/master/libraries) folder of this repo.
 
