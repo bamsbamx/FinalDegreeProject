@@ -15,19 +15,3 @@ Related files:
 libraries/TinkerKit.cpp: TinkerKit! library source file
 libraries/TinkerKit.hpp: TinkerKit! header file
 ```
-
-
-### 2.Test UART serial communication
-In this project, the IOT2040 should be able to communicate with other devices. This could be achieved via the UART capability of the Arduino expansion. The Arduino digital pins 0 and 1 are designed for serial communication, and those pins belong to the UART port 0. 
-
-In order to achieve the serial communication between boards, a test case has been developed, where the IOT2040 reads the value of a TinkerKit! potentiometer, sends its value as a byte string to an Arduino ATMega2560 board via serial communiaction and the ATMega sends an analog signal via PWM to light a LED with a specific brightness level based on the potentiometer value. 
-
-Related files:
-```
-uart_test_tx.cpp: Code necessary to make the IOT2040 read the potentiometer value and send it via serial communication
-uart_test_rx.ino: Code necessary to make the Arduino ATMega2560 receive the potentiometer value via serial communication, light the LED with the received potentiometer value brightness level and debug the recevied value to the Arduino IDE Serial Monitor
-```
-
-
-
-
