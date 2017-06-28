@@ -36,8 +36,8 @@ void parseReply(char*, int);
 bool stopped = false;
 
 // Program close signal handler
-void procSigIntHandler(int s){
-           stopped = true;
+void procSigIntHandler(int s) {
+	stopped = true;
 }
 
 // Define input elements, which values are sent to the Arduino board
