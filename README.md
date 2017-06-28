@@ -31,5 +31,26 @@ uart_test_rx.ino: Code necessary to make the Arduino ATMega2560 receive the pote
 ```
 
 
+### 3.TCP/IP communication inside a LAN
+This time the IOT2040 Ethernet capability is going to be tested, in order for it to be able to connect and communicate with other devices connected into the same LAN. Again, an Arduino board will be used for the experiment (obviously with an Arduino Ethernet shield attached to it). The chosen communication protocol is TCP/IP, because it is probably the most used communication protocol between Internet connected devices and because both the IOT2040 and Arduino are compatible with it.
+
+In order to create more "formal" communication, an abstract command interface has been introduced keeping in mind the target of this project, which is to make possible to manipulate electronic elements such as sensors/actuators via Internet of Things. Hence, the interface consists of two pair of commands: analog read/write and digital read/write. With them, its possible to cover the most part of available elements in an industry:
+```
+"ar <analogPinNumber>\n": Analog read command. The client will read the analog value of the <pinNumber> assigned pin, and reply back with the read value concatenated to the actual command (Example: "ar 1\n" makes the client read the pin 6 analog value and reply "ar 1 347\n") NOTE: The ADC value range may depend on the client so, in case of using an Arduino board, the actual range will be 0-1023
+
+"aw <analogPinNumber> <dacValue>\n": Analog write command. Sets the <pinNumber> assigned analog pin the analog <dacValue> The client will reply with the same command if the execution was successful. (Example: "aw 2 916\n" makes the analog pin 5 set the analog value 916) NOTE: The DAC value range may depend on the client so, in case of using an Arduino board, the actual range will be 0-1023
+
+"dr <pinNumber>\n": Digital read command. The client will read the digital value of the <pinNumber> assigned pin, and reply back with the read value concatenated to the actual command (Example: "dr 6\n" makes the client read the digital pin 6 value and reply "dr 6 0\n")
+
+"dw <pinNumber> <value>\n": Digital write command. Sets the <pinNumber> assigned pin the digital on/off <value>. The client will reply with the same command if the execution was successful. (Example: "dw 5 1\n" makes the digital pin 5 set the digital value 1)
+```
+
+
+Related files:
+```
+ethernet_tcp_test_server.cpp: Code necessary to make the IOT2040 work as TCP server and send commands to the client (Arduino board) periodically
+ethernet_tcp_test_client.ino: Code necessary to make the Arduino board work as TCP client and receive the commands sent by the server
+```
+
 
 

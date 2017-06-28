@@ -17,10 +17,10 @@
 const int PORT_NUMBER = 55056;
 const int BUFFER_LENGTH = 256;
 
-// format: "ar <analogicPinNumber>\n"
-const char* COMMAND_FORMAT_ANALOGIC_READ = "ar %d\n";
-// format: "aw <analogicPinNumber> <dacValue>\n" (dacValue must be 0..255)
-const char* COMMAND_FORMAT_ANALOGIC_WRITE = "aw %d %d\n";
+// format: "ar <analogPinNumber>\n"
+const char* COMMAND_FORMAT_ANALOG_READ = "ar %d\n";
+// format: "aw <analogPinNumber> <dacValue>\n" (depends on client dacValue)
+const char* COMMAND_FORMAT_ANALOG_WRITE = "aw %d %d\n";
 // format: "dr <digitalPinNumber>\n"
 const char* COMMAND_FORMAT_DIGITAL_READ = "dr %d\n";
 // format: "dw <digitalPinNumber> <digitalValue>\n"
@@ -29,26 +29,30 @@ const char* COMMAND_FORMAT_DIGITAL_WRITE = "dw %d %d\n";
 void error(const char *);
 int digitalReadCommand(char*, int);
 int digitalWriteCommand(char*, int, int);
-int analogicReadCommand(char*, int);
-int analogicWriteCommand(char*, int, int);
+int analogReadCommand(char*, int);
+int analogWriteCommand(char*, int, int);
 void parseReply(char*, int);
 
 bool stopped = false;
 
+// Program close signal handler
 void procSigIntHandler(int s){
-           printf("Caught signal %d\n", s); //TODO: DELETE
            stopped = true;
 }
 
+// Define input elements, which values are sent to the Arduino board
 mraa::Gpio* button = NULL;
 mraa::Aio* potentiometer = NULL;
 
+
 int main(void) {
 
+	// Initialize input elements
 	button = new mraa::Gpio(0, true, false);
 	button->dir(mraa::DIR_IN);
 	potentiometer = new mraa::Aio(0);
 
+	// Print TCP port number to console
 	std::cout << "Hello, TCP! (" << PORT_NUMBER << ")" << std::endl;
 
 	// Listen for program termination, so it can close sockets properly
@@ -58,81 +62,94 @@ int main(void) {
 	sigIntHandler.sa_flags = 0;
 	sigaction(SIGINT, &sigIntHandler, NULL);
 
+	// Create I/O char buffer
 	char buffer[BUFFER_LENGTH];
 
+	// Open TCP connection socket
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) error("ERROR opening socket");
 
+	// Initialize server socket
 	struct sockaddr_in serv_addr;
 	memset(&serv_addr, 0, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	serv_addr.sin_port = htons(PORT_NUMBER);
 
+	// Initialize client socket
 	struct sockaddr_in cli_addr;
 	socklen_t clilen = sizeof(cli_addr);
 
+	// Bind server socket and start listening for clients
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) error("ERROR on binding");
 	listen(sockfd, 5);
+
+	// Wait until a client is connected
 	int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 	if (newsockfd < 0) error("ERROR on accept");
 
 	int n = BUFFER_LENGTH;
 
-	int i = 0;
 	int length;
 	int buttonValue;
 	int potValue;
 	memset(buffer, 0, BUFFER_LENGTH);
 	bool error = false;
+
+	// Keep transmitting input values until program is terminated or client is disconnected
 	while (!stopped) {
 
 		if (error == true) {
-			// Keep looking for clients
+			// Wait until any client is connected again
 			newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 			error = false;
 		}
-//		length = digitalWriteCommand(buffer, 4, i%2 == 0 ? 1 : 0); // Toggle LED0 = ON/OFF
-//		n = write(newsockfd, buffer, length);
-//		if (n < 0) error("ERROR writing to socket");
 
+		// Read button value
 		buttonValue = button->read();
-		printf("%d", buttonValue);
+		// Write output command into buffer
 		length = digitalWriteCommand(buffer, 5, buttonValue);
+		// Send digital write command to client (Arduino board)
 		n = write(newsockfd, buffer, length);
 		if (n < 0) {
 			printf("ERROR writing to socket");
 			error = true;
 		}
 
-		length = analogicReadCommand(buffer, 0);
+		// Write input command into buffer
+		length = analogReadCommand(buffer, 0);
+		// Send analog read command to client (Arduino board)
 		n = write(newsockfd, buffer, length);
 		if (n < 0) {
 			printf("ERROR writing to socket");
 			error = true;
 		}
 
+
+		// Read potentiometer value
 		potValue = (potentiometer->read() * 255) / 1024;
-		length = analogicWriteCommand(buffer, 3, potValue);
+		// Write output command into buffer
+		length = analogWriteCommand(buffer, 3, potValue);
+		// Send analog write command
 		n = write(newsockfd, buffer, length);
 		if (n < 0) {
 			printf("ERROR writing to socket");
 			error = true;
 		}
 
-		std::cout << "Command sent" << std::endl;
+		// Read client command replies
 		n = read(newsockfd, buffer, BUFFER_LENGTH - 1);
 
+		// Parse input replies (if any)
 		if (n > 0) {
 			parseReply(buffer, n);
 			memset(buffer, 0, BUFFER_LENGTH);
 		}
+
 		if (n < 0) {
 			printf("ERROR reading from socket");
 			error = true;
 		}
-
-		i++;
 
 		usleep(250 * 1000); // 2 seconds
 	}
@@ -145,12 +162,14 @@ int main(void) {
 }
 
 
+// Terminate program in case of errors
 void error(const char *msg) {
     perror(msg);
     exit(1);
 }
 
 
+// Split received to read command arguments
 std::vector<std::string> split(std::string str, std::string sep) {
     char* cstr = const_cast<char*>(str.c_str());
     char* current;
@@ -165,26 +184,31 @@ std::vector<std::string> split(std::string str, std::string sep) {
 }
 
 
-int analogicReadCommand(char* buffer, int pinNumber) {
-	return sprintf(buffer, COMMAND_FORMAT_ANALOGIC_READ, pinNumber);
+// Create analog read command
+int analogReadCommand(char* buffer, int pinNumber) {
+	return sprintf(buffer, COMMAND_FORMAT_ANALOG_READ, pinNumber);
 }
 
 
-int analogicWriteCommand(char* buffer, int pinNumber, int dacValue) {
-	return sprintf(buffer, COMMAND_FORMAT_ANALOGIC_WRITE, pinNumber, dacValue);
+// Create analog write command
+int analogWriteCommand(char* buffer, int pinNumber, int dacValue) {
+	return sprintf(buffer, COMMAND_FORMAT_ANALOG_WRITE, pinNumber, dacValue);
 }
 
 
+// Create digital read command
 int digitalReadCommand(char* buffer, int pinNumber) {
 	return sprintf(buffer, COMMAND_FORMAT_DIGITAL_READ, pinNumber);
 }
 
 
+// Create digital write command
 int digitalWriteCommand(char* buffer, int pinNumber, int digitalValue) {
 	return sprintf(buffer, COMMAND_FORMAT_DIGITAL_WRITE, pinNumber, digitalValue);
 }
 
 
+// Split replies from each command
 void parseReply(char* replies, int length) {
 
 	printf("Received reply: %s\n", replies);
@@ -206,12 +230,12 @@ void parseReply(char* replies, int length) {
 		if (strcmp(commandName, "ERROR:") == 0) {
 			std::cout << "Client replied with error: " << reply << std::endl;
 		} else if (strcmp(commandName, "dr") == 0) {
+			// Client replied with digital reading result
 			std::cout << "Digital pin value: " << pin << "-" << value << std::endl;
-
 		} else if (strcmp(commandName, "dw") == 0) {
 			// Command was successful, nothing to do
-			printf("PIN: %d STATE: %d\n", pin, value);
 		} else if (strcmp(commandName, "ar") == 0) {
+			// Client replied with analog reading result
 			std::cout << "Analog pin value: " << pin << "-" << value << std::endl;
 		} else if (strcmp(commandName, "aw") == 0) {
 			// Command was successful, nothing to do
